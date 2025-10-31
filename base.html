@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Grimório de Griggs</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Roboto, sans-serif;
+      background-color: #111;
+      color: #f1f1f1;
+      margin: 0;
+      padding: 0;
+    }
+
+    nav {
+      background-color: #1c1c1c;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+    }
+
+    nav h1 { font-size: 1.4rem; margin: 0; letter-spacing: 1px; }
+    nav ul { list-style: none; display: flex; margin: 0; padding: 0; }
+    nav li { margin-left: 1.5rem; }
+    nav a {
+      color: #f1f1f1;
+      text-decoration: none;
+      font-weight: bold;
+      transition: color 0.2s ease;
+    }
+    nav a:hover { color: #ffcc00; }
+
+    .page { display: none; padding: 1.5rem; }
+    .active { display: block; }
+
+    #search {
+      margin-bottom: 1.2rem;
+      padding: 0.6rem 0.75rem;
+      width: 100%;
+      max-width: 400px;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid #333;
+      background: #222;
+      color: #f1f1f1;
+    }
+    #search:focus { outline: 1px solid #ffcc00; }
+
+    /* Fix layout stretch issue */
+    .level-section {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-start; /* prevents stretch */
+    }
+
+    .spell-card {
+      flex: 1 1 300px;
+      background: #1b1b1b;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 0.75rem;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .spell-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
+    }
+
+    button {
+      display: block;
+      width: 100%;
+      text-align: center;
+      background: #333;
+      color: #fff;
+      border: none;
+      padding: 0.6rem 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.25s ease, transform 0.1s ease;
+    }
+    button:hover { background: #444; transform: translateY(-1px); }
+    button:active { background: #555; transform: translateY(0); }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-top: 0.4rem;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      transform: scale(1.1);
+      accent-color: #ffcc00;
+      cursor: pointer;
+    }
+
+    .checkbox-group label {
+      margin-right: 0.6rem;
+      font-size: 0.95rem;
+      color: #ddd;
+      cursor: pointer;
+    }
+
+    .spell-content {
+      display: none;
+      margin-top: 0.6rem;
+      background: #222;
+      border-radius: 6px;
+      padding: 0.6rem;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      border: 1px solid #333;
+    }
+
+    #about h2 { margin-top: 0; color: #ffcc00; }
+    #checkedList li {
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 6px;
+      margin: 0.4rem 0;
+      padding: 0.4rem 0.6rem;
+      list-style: none;
+      transition: background 0.2s;
+    }
+    #checkedList li:hover { background: #333; }
+
+    #about ul ul {
+      background: #1a1a1a;
+      border-radius: 6px;
+      padding: 0.4rem 0.8rem;
+      margin-bottom: 0.6rem;
+      border: 1px solid #333;
+    }
+
+    .counter {
+      font-size: 0.9rem;
+      margin-left: 0.5rem;
+    }
+    .normal-counter { color: #ffcc00; }
+    .special-counter { color: #00bfff; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>Grimório de Griggs</h1>
+    <ul>
+      <li><a href="#" onclick="showPage('spellbook')">Spellbook</a></li>
+      <li><a href="#" onclick="showPage('about')">About</a></li>
+    </ul>
+  </nav>
+
+  <div id="spellbook" class="page active">
+    <input id="search" type="text" placeholder="Search spells...">
+    <div id="spells">Loading...</div>
+  </div>
+
+  <div id="about" class="page">
+    <h2>Prepared spells</h2>
+    <p>Separated by level (bold = specialist slot):</p>
+    <ul id="checkedList"></ul>
+  </div>
+
+  <script>
+    let spells = [];
+    let preparedSpells = JSON.parse(localStorage.getItem("preparedSpells") || "[]");
+    let specialistSpells = JSON.parse(localStorage.getItem("specialistSpells") || "[]");
+
+    const spellSlots =      {0:3, 1:2, 2:1, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0};
+    const specialistSlots = {0:3, 1:3, 2:3, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0};
+
+    function countPreparedByLevel(list) {
+      const counts = {};
+      list.forEach(name => {
+        const spell = spells.find(s => s.name === name);
+        const lvl = spell ? spell.level || 0 : 0;
+        counts[lvl] = (counts[lvl] || 0) + 1;
+      });
+      return counts;
+    }
+
+    function showPage(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+      if (pageId === 'about') renderChecked();
+    }
+
+    async function loadSpells() {
+      try {
+        const res = await fetch('data.json');
+        if (!res.ok) throw new Error('Could not load data.json');
+        spells = await res.json();
+        renderSpells(spells);
+      } catch (err) {
+        document.getElementById('spells').textContent = err.message;
+      }
+    }
+
+    function renderSpells(list, filterText = "") {
+      const container = document.getElementById('spells');
+      container.innerHTML = "";
+      const lowerFilter = filterText.toLowerCase();
+
+      const filtered = list.filter(spell => {
+        const all = Object.values(spell).join(" ").toLowerCase();
+        return all.includes(lowerFilter);
+      });
+
+      if (filtered.length === 0) {
+        container.textContent = "No spells found.";
+        return;
+      }
+
+      const grouped = {};
+      filtered.forEach(spell => {
+        const level = spell.level || "Unknown";
+        if (!grouped[level]) grouped[level] = [];
+        grouped[level].push(spell);
+      });
+
+      Object.keys(grouped)
+        .sort((a, b) => Number(a) - Number(b))
+        .forEach(level => {
+          const section = document.createElement('div');
+          section.style.width = "100%";
+
+          const title = document.createElement('h2');
+          title.textContent = `Level ${level}`;
+          const normalCounter = document.createElement('span');
+          normalCounter.id = `counter-${level}`;
+          normalCounter.className = "counter normal-counter";
+          title.appendChild(normalCounter);
+
+          const specialistCounter = document.createElement('span');
+          specialistCounter.id = `special-counter-${level}`;
+          specialistCounter.className = "counter special-counter";
+          title.appendChild(specialistCounter);
+          section.appendChild(title);
+
+          const levelContainer = document.createElement('div');
+          levelContainer.className = "level-section";
+          section.appendChild(levelContainer);
+
+          grouped[level].forEach((spell, index) => {
+            const card = document.createElement('div');
+            card.className = "spell-card";
+
+            const button = document.createElement('button');
+            button.textContent = spell.name || `Spell ${index + 1}`;
+            button.addEventListener('click', () => openSpell(card, levelContainer));
+            card.appendChild(button);
+
+            const checks = document.createElement('div');
+            checks.className = "checkbox-group";
+
+            const prepBox = document.createElement('input');
+            prepBox.type = "checkbox";
+            prepBox.id = `prep-${level}-${index}`;
+            prepBox.value = spell.name;
+            prepBox.checked = preparedSpells.includes(spell.name);
+            prepBox.addEventListener('change', () => togglePrepared(spell.name, prepBox.checked));
+            checks.appendChild(prepBox);
+
+            const prepLabel = document.createElement('label');
+            prepLabel.textContent = "Prepare";
+            prepLabel.setAttribute('for', prepBox.id);
+            checks.appendChild(prepLabel);
+
+            const school = (spell.school || spell.School || spell.magic_school || "").toString();
+            const isConjuration = school.toLowerCase().includes("conjuration");
+
+            if (isConjuration) {
+              const specBox = document.createElement('input');
+              specBox.type = "checkbox";
+              specBox.id = `spec-${level}-${index}`;
+              specBox.value = spell.name;
+              specBox.checked = specialistSpells.includes(spell.name);
+              specBox.addEventListener('change', () => toggleSpecialist(spell.name, specBox.checked));
+              checks.appendChild(specBox);
+
+              const specLabel = document.createElement('label');
+              specLabel.textContent = "Specialist slot";
+              specLabel.setAttribute('for', specBox.id);
+              checks.appendChild(specLabel);
+            }
+
+            card.appendChild(checks);
+
+            const content = document.createElement('div');
+            content.className = "spell-content";
+            for (const [key, value] of Object.entries(spell)) {
+              if (key === "name") continue;
+              if (!value || String(value).trim() === "") continue;
+              const p = document.createElement('p');
+              p.textContent = `${key}: ${value}`;
+              content.appendChild(p);
+            }
+
+            card.appendChild(content);
+            levelContainer.appendChild(card);
+          });
+
+          container.appendChild(section);
+        });
+
+      updateCounters();
+    }
+
+    function openSpell(card, levelContainer) {
+      const content = card.querySelector('.spell-content');
+      if (!content) return;
+
+      const isOpen = content.style.display === "block";
+      levelContainer.querySelectorAll('.spell-card .spell-content').forEach(c => {
+        if (c !== content) c.style.display = "none";
+      });
+
+      content.style.display = isOpen ? "none" : "block";
+    }
+
+    function togglePrepared(name, checked) {
+      const spell = spells.find(s => s.name === name);
+      const level = spell ? spell.level || 0 : 0;
+      const currentCounts = countPreparedByLevel(preparedSpells);
+      const current = currentCounts[level] || 0;
+      const max = spellSlots[level] ?? 0;
+
+      if (checked) {
+        if (current >= max) {
+          alert(`You can only prepare ${max} spells of level ${level}.`);
+          const checkbox = document.querySelector(`input[value="${name}"]`);
+          if (checkbox) checkbox.checked = false;
+          return;
+        }
+        preparedSpells.push(name);
+      } else {
+        preparedSpells = preparedSpells.filter(n => n !== name);
+      }
+      localStorage.setItem("preparedSpells", JSON.stringify(preparedSpells));
+      updateCounters();
+    }
+
+    function toggleSpecialist(name, checked) {
+      const spell = spells.find(s => s.name === name);
+      const level = spell ? spell.level || 0 : 0;
+      const currentCounts = countPreparedByLevel(specialistSpells);
+      const current = currentCounts[level] || 0;
+      const max = specialistSlots[level] ?? 0;
+
+      if (checked) {
+        if (current >= max) {
+          alert(`You can only prepare ${max} specialist spells of level ${level}.`);
+          const checkbox = document.querySelector(`input[value="${name}"]`);
+          if (checkbox) checkbox.checked = false;
+          return;
+        }
+        specialistSpells.push(name);
+      } else {
+        specialistSpells = specialistSpells.filter(n => n !== name);
+      }
+      localStorage.setItem("specialistSpells", JSON.stringify(specialistSpells));
+      updateCounters();
+    }
+
+    function renderChecked() {
+      const list = document.getElementById("checkedList");
+      list.innerHTML = "";
+
+      const combined = [...new Set([...preparedSpells, ...specialistSpells])];
+      if (combined.length === 0) {
+        list.innerHTML = "<li>No spells prepared yet.</li>";
+        return;
+      }
+
+      const spellData = {};
+      spells.forEach(spell => spellData[spell.name] = spell);
+
+      const grouped = {};
+      combined.forEach(name => {
+        const spell = spellData[name];
+        const level = spell ? spell.level || "Unknown" : "Unknown";
+        if (!grouped[level]) grouped[level] = { normal: [], specialist: [] };
+        if (specialistSpells.includes(name)) grouped[level].specialist.push(name);
+        else grouped[level].normal.push(name);
+      });
+
+      Object.keys(grouped).sort((a, b) => Number(a) - Number(b)).forEach(level => {
+        const levelItem = document.createElement("li");
+        levelItem.innerHTML = `<strong>Level ${level}</strong>`;
+        list.appendChild(levelItem);
+
+        if (grouped[level].normal.length > 0) {
+          const sub = document.createElement("p");
+          sub.textContent = "Normal Slots:";
+          sub.style.color = "#ffcc00";
+          sub.style.margin = "0.3rem 0 0.2rem 0.8rem";
+          list.appendChild(sub);
+
+          const ul = document.createElement("ul");
+          grouped[level].normal.forEach(name => {
+            const li = document.createElement("li");
+            li.textContent = name;
+            ul.appendChild(li);
+          });
+          list.appendChild(ul);
+        }
+
+        if (grouped[level].specialist.length > 0) {
+          const sub = document.createElement("p");
+          sub.textContent = "Specialist Slots:";
+          sub.style.color = "#00bfff";
+          sub.style.margin = "0.3rem 0 0.2rem 0.8rem";
+          list.appendChild(sub);
+
+          const ul = document.createElement("ul");
+          grouped[level].specialist.forEach(name => {
+            const li = document.createElement("li");
+            li.textContent = name;
+            li.style.fontWeight = "bold";
+            ul.appendChild(li);
+          });
+          list.appendChild(ul);
+        }
+      });
+    }
+
+    function updateCounters() {
+      const normalCounts = countPreparedByLevel(preparedSpells);
+      const specialCounts = countPreparedByLevel(specialistSpells);
+
+      for (const level in spellSlots) {
+        const used = normalCounts[level] || 0;
+        const max = spellSlots[level];
+        const el = document.getElementById(`counter-${level}`);
+        if (el) el.textContent = ` ( ${used}/${max} normal )`;
+      }
+
+      for (const level in specialistSlots) {
+        const used = specialCounts[level] || 0;
+        const max = specialistSlots[level];
+        const el = document.getElementById(`special-counter-${level}`);
+        if (el) el.textContent = ` ( ${used}/${max} specialist )`;
+      }
+    }
+
+    document.getElementById('search').addEventListener('input', e => renderSpells(spells, e.target.value));
+    loadSpells();
+  </script>
+</body>
+</html>

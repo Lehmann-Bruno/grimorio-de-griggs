@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Grimório de Griggs</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav>
+    <h1>Grimório de Griggs</h1>
+    <ul>
+      <li><a href="#" onclick="showPage('spellbook')">Spellbook</a></li>
+      <li><a href="#" onclick="showPage('cast')">Cast Spells</a></li>
+    </ul>
+  </nav>
+
+  <div id="spellbook" class="page active">
+    <input id="search" type="text" placeholder="Search spells...">
+    <div id="spells">Loading...</div>
+  </div>
+
+  <div id="cast" class="page">
+    <h2>Cast Spells</h2>
+    <button id="restButton" class="rest-button">Rest (Restore All Casts)</button>
+    <p>Separated by level (bold = specialist slot):</p>
+    <ul id="checkedList"></ul>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

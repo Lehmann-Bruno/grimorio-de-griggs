@@ -1,0 +1,303 @@
+body {
+  font-family: "Segoe UI", Roboto, sans-serif;
+  background-color: #111;
+  color: #f1f1f1;
+  margin: 0;
+  padding: 0;
+}
+
+nav {
+  background-color: #1c1c1c;
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+nav h1 { font-size: 1.4rem; margin: 0; letter-spacing: 1px; }
+nav ul { list-style: none; display: flex; margin: 0; padding: 0; }
+nav li { margin-left: 1.5rem; }
+nav a {
+  color: #f1f1f1;
+  text-decoration: none;
+  font-weight: bold;
+  transition: color 0.2s ease;
+}
+nav a:hover { color: #ffcc00; }
+
+.page { display: none; padding: 1.5rem; }
+.active { display: block; }
+
+#search {
+  margin-bottom: 1.2rem;
+  padding: 0.6rem 0.75rem;
+  width: 100%;
+  max-width: 400px;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 1px solid #333;
+  background: #222;
+  color: #f1f1f1;
+}
+#search:focus { outline: 1px solid #ffcc00; }
+
+/* Layout */
+.level-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.spell-card {
+  flex: 1 1 300px;
+  background: #1b1b1b;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 0.75rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.spell-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
+}
+
+button {
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: #333;
+  color: #fff;
+  border: none;
+  padding: 0.6rem 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.25s ease, transform 0.1s ease;
+}
+button:hover { background: #444; transform: translateY(-1px); }
+button:active { background: #555; transform: translateY(0); }
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: nowrap;
+  margin-top: 0.5rem; /* adds a little vertical space below spell name */
+  padding-top: 0.2rem; /* extra breathing room */
+}
+
+.checkbox-group input[type="checkbox"] {
+  transform: scale(1.1);
+  accent-color: #ffcc00;
+  cursor: pointer;
+}
+
+.checkbox-group label {
+  margin-right: 0.6rem;
+  font-size: 0.95rem;
+  color: #ddd;
+  cursor: pointer;
+}
+
+.spell-content {
+  display: none;
+  margin-top: 0.6rem;
+  background: #222;
+  border-radius: 6px;
+  padding: 0.6rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  border: 1px solid #333;
+}
+
+#castsPerDayContainer {
+  background: #1b1b1b;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 0.6rem 1rem;
+  margin-bottom: 1rem;
+}
+
+#castsPerDayContainer ul {
+  margin: 0.4rem 0 0 1rem;
+  padding-left: 1rem;
+}
+
+#castsPerDayContainer li {
+  list-style: none;
+  padding: 0.2rem 0;
+  color: #ddd;
+}
+
+#checkedList li {
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 6px;
+  margin: 0.4rem 0;
+  padding: 0.4rem 0.6rem;
+  list-style: none;
+  transition: background 0.2s;
+}
+#checkedList li:hover { background: #333; }
+
+#about h2, #cast h2 { margin-top: 0; color: #ffcc00; }
+
+.counter {
+  font-size: 0.9rem;
+  margin-left: 0.5rem;
+}
+.normal-counter { color: #ffcc00; }
+.special-counter { color: #00bfff; }
+
+.cast-level-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #1b1b1b;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  margin-top: 0.6rem;
+}
+
+.cast-level-title strong {
+  color: #fff;
+}
+
+.cast-level-title .cast-count {
+  color: #00bfff;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.spell-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 6px;
+  margin: 0.3rem 0;
+  padding: 0.3rem 0.6rem;
+}
+
+.spell-list-item span {
+  flex: 1;
+  color: #f1f1f1;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cast-button {
+  flex-shrink: 0;
+  width: auto;
+  min-width: 70px;
+  background: #444;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  margin-left: 0.6rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.cast-button:hover {
+  background: #666;
+  transform: translateY(-1px);
+}
+
+.cast-button:active {
+  background: #888;
+  transform: translateY(0);
+}
+
+.rest-button {
+  background: #006400;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  transition: background 0.25s ease, transform 0.1s ease;
+}
+
+.rest-button:hover {
+  background: #008000;
+  transform: translateY(-1px);
+}
+
+.rest-button:active {
+  background: #00a000;
+  transform: translateY(0);
+}
+
+.specialist-cast {
+  background: #004080;
+}
+
+.specialist-cast:hover {
+  background: #0059b3;
+}
+
+.specialist-cast:active {
+  background: #0070e0;
+}
+
+.specialist-container {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.2rem; /* aligns vertically with Prepare checkbox */
+}
+
+.add-specialist-btn {
+  height: 1.2rem;
+  width: 1.2rem;
+  line-height: 1rem;
+  background: #444;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.add-specialist-btn:hover {
+  background: #666;
+  transform: translateY(-1px);
+}
+
+.add-specialist-btn:active {
+  background: #888;
+  transform: translateY(0);
+}
+
+.specialist-label {
+  font-size: 0.9rem;
+  color: #ddd;
+  white-space: nowrap;
+}

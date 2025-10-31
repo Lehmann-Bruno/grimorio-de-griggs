@@ -301,3 +301,13 @@ button:active { background: #555; transform: translateY(0); }
   color: #ddd;
   white-space: nowrap;
 }
+
+#clearAllButton {
+  background: #800000;
+}
+#clearAllButton:hover {
+  background: #a00000;
+}
+#clearAllButton:active {
+  background: #c00000;
+}

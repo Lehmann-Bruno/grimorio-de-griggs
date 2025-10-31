@@ -31,6 +31,37 @@ function showPage(pageId) {
   }
 }
 
+// ==== CLEAR ALL PREPARED SPELLS ====
+// ==== CLEAR ALL PREPARED SPELLS (no confirm dialog needed) ====
+document.getElementById("clearAllButton").addEventListener("click", () => {
+  // Custom in-page confirmation (since browser confirm() may be blocked)
+  const btn = document.getElementById("clearAllButton");
+  if (!btn.dataset.confirmed) {
+    btn.textContent = "Click again to confirm!";
+    btn.dataset.confirmed = "true";
+    setTimeout(() => {
+      btn.textContent = "Unprepare All Spells";
+      btn.dataset.confirmed = "";
+    }, 3000);
+    return;
+  }
+
+  // If user clicks again within 3s → perform clear
+  preparedSpells = [];
+  specialistSpells = [];
+  localStorage.setItem("preparedSpells", JSON.stringify(preparedSpells));
+  localStorage.setItem("specialistSpells", JSON.stringify(specialistSpells));
+
+  document.querySelectorAll('input[type="checkbox"][data-role="prepare"]').forEach(c => (c.checked = false));
+
+  updateCounters();
+  renderSpells(spells);
+
+  btn.textContent = "All spells cleared!";
+  btn.dataset.confirmed = "";
+  setTimeout(() => (btn.textContent = "Unprepare All Spells"), 2000);
+});
+
 // ==== LOAD SPELLS ====
 async function loadSpells() {
   try {
@@ -244,7 +275,6 @@ function renderChecked() {
   const list = document.getElementById("checkedList");
   list.innerHTML = "";
 
-  // Load or init remaining casts
   let castsLeftByLevel = JSON.parse(localStorage.getItem("castsLeftByLevel")) || structuredClone(castsPerDay);
 
   const restBtn = document.getElementById("restButton");
@@ -256,53 +286,56 @@ function renderChecked() {
     };
   }
 
-  // === Build combined list with duplicates ===
-  const combined = [...preparedSpells, ...specialistSpells];
-  if (combined.length === 0) {
+  // If nothing prepared
+  if (preparedSpells.length === 0 && specialistSpells.length === 0) {
     list.innerHTML = "<li>No spells prepared yet.</li>";
     return;
   }
 
-  // Index spell data
+  // Build spell data map
   const spellData = {};
   spells.forEach(spell => spellData[spell.name] = spell);
 
-  // Group spells by level and type
+  // Group both lists by level
   const grouped = {};
-  combined.forEach(name => {
+
+  preparedSpells.forEach(name => {
     const spell = spellData[name];
     const level = spell ? spell.level || "Unknown" : "Unknown";
-    if (!grouped[level]) grouped[level] = { normal: [], specialist: [] };
-
-    if (specialistSpells.includes(name)) grouped[level].specialist.push(name);
-    else grouped[level].normal.push(name);
+    if (!grouped[level]) grouped[level] = { normal: {}, specialist: {} };
+    grouped[level].normal[name] = (grouped[level].normal[name] || 0) + 1;
   });
 
-  // === Render each level ===
+  specialistSpells.forEach(name => {
+    const spell = spellData[name];
+    const level = spell ? spell.level || "Unknown" : "Unknown";
+    if (!grouped[level]) grouped[level] = { normal: {}, specialist: {} };
+    grouped[level].specialist[name] = (grouped[level].specialist[name] || 0) + 1;
+  });
+
+  // Render levels
   Object.keys(grouped)
     .sort((a, b) => Number(a) - Number(b))
     .forEach(level => {
       const lvl = Number(level);
       const castsLeft = castsLeftByLevel[lvl] ?? 0;
 
-      // LEVEL HEADER
-      const levelItem = document.createElement("li");
-      levelItem.className = "cast-level-title";
+      const header = document.createElement("li");
+      header.className = "cast-level-title";
 
-      const levelLabel = document.createElement("strong");
-      levelLabel.textContent = `Level ${level}`;
+      const title = document.createElement("strong");
+      title.textContent = `Level ${level}`;
+      const counter = document.createElement("span");
+      counter.className = "cast-count";
+      counter.dataset.level = level;
+      counter.textContent = `${castsLeft} casts left`;
 
-      const count = document.createElement("span");
-      count.className = "cast-count";
-      count.textContent = `${castsLeft} casts left`;
-      count.dataset.level = level;
+      header.appendChild(title);
+      header.appendChild(counter);
+      list.appendChild(header);
 
-      levelItem.appendChild(levelLabel);
-      levelItem.appendChild(count);
-      list.appendChild(levelItem);
-
-      // === NORMAL SPELLS ===
-      if (grouped[level].normal.length > 0) {
+      // ==== NORMAL SPELLS ====
+      if (Object.keys(grouped[level].normal).length > 0) {
         const sub = document.createElement("p");
         sub.textContent = "Normal Slots:";
         sub.style.color = "#ffcc00";
@@ -310,12 +343,12 @@ function renderChecked() {
         list.appendChild(sub);
 
         const ul = document.createElement("ul");
-        grouped[level].normal.forEach(name => {
+        Object.entries(grouped[level].normal).forEach(([name, count]) => {
           const li = document.createElement("li");
           li.className = "spell-list-item";
 
-          const spellName = document.createElement("span");
-          spellName.textContent = name;
+          const label = document.createElement("span");
+          label.textContent = `${name} (${count} remaining)`;
 
           const btn = document.createElement("button");
           btn.textContent = "Cast";
@@ -323,51 +356,50 @@ function renderChecked() {
 
           btn.addEventListener("click", () => {
             if (castsLeftByLevel[lvl] > 0) {
-              castsLeftByLevel[lvl]--;
-              localStorage.setItem("castsLeftByLevel", JSON.stringify(castsLeftByLevel));
-              const counter = document.querySelector(`.cast-count[data-level="${lvl}"]`);
-              if (counter) counter.textContent = `${castsLeftByLevel[lvl]} casts left`;
-            } else {
-              alert(`No casts left for level ${lvl}!`);
-            }
-          });
+                castsLeftByLevel[lvl]--;
+                localStorage.setItem("castsLeftByLevel", JSON.stringify(castsLeftByLevel));
 
-          li.appendChild(spellName);
+                // Only reduce per-day casts, not remove prepared spell
+                const counter = document.querySelector(`.cast-count[data-level="${lvl}"]`);
+                if (counter) counter.textContent = `${castsLeftByLevel[lvl]} casts left`;
+
+                renderChecked(); // refresh counts
+            } else {
+                alert(`No casts left for level ${lvl}!`);
+            }
+        });
+
+
+          li.appendChild(label);
           li.appendChild(btn);
           ul.appendChild(li);
         });
         list.appendChild(ul);
       }
 
-      // === SPECIALIST SPELLS ===
-      if (grouped[level].specialist.length > 0) {
+      // ==== SPECIALIST SPELLS ====
+      if (Object.keys(grouped[level].specialist).length > 0) {
         const sub = document.createElement("p");
         sub.textContent = "Specialist Slots:";
         sub.style.color = "#00bfff";
         sub.style.margin = "0.3rem 0 0.2rem 0.8rem";
         list.appendChild(sub);
 
-        // count duplicates
-        const specCounts = {};
-        grouped[level].specialist.forEach(name => {
-          specCounts[name] = (specCounts[name] || 0) + 1;
-        });
-
         const ul = document.createElement("ul");
-        Object.entries(specCounts).forEach(([name, count]) => {
+        Object.entries(grouped[level].specialist).forEach(([name, count]) => {
           const li = document.createElement("li");
           li.className = "spell-list-item";
 
-          const spellName = document.createElement("span");
-          spellName.textContent = `${name} (${count} remaining)`;
-          spellName.style.fontWeight = "bold";
+          const label = document.createElement("span");
+          label.textContent = `${name} (${count} remaining)`;
+          label.style.fontWeight = "bold";
 
           const btn = document.createElement("button");
           btn.textContent = "Cast";
           btn.className = "cast-button specialist-cast";
 
           btn.addEventListener("click", () => {
-            // Remove only one instance of this spell
+            // remove only one instance from specialist
             const idx = specialistSpells.indexOf(name);
             if (idx !== -1) specialistSpells.splice(idx, 1);
             localStorage.setItem("specialistSpells", JSON.stringify(specialistSpells));
@@ -377,7 +409,7 @@ function renderChecked() {
             renderChecked();
           });
 
-          li.appendChild(spellName);
+          li.appendChild(label);
           li.appendChild(btn);
           ul.appendChild(li);
         });
